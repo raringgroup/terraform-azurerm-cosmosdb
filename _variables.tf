@@ -14,7 +14,7 @@
 ## limitations under the License.
 ## ----------------------------------------------------------------------------
 ##
-##  modules/cosmosdb/_variables.tf
+##  _variables.tf
 ##
 ##  Input variables for the Cosmos DB (SQL API) module.
 ## ----------------------------------------------------------------------------
@@ -39,9 +39,11 @@ variable "free_tier_enabled" {
   description = "Whether the free tier is enabled (one per subscription)"
 }
 
+# DEPRECATED UPSTREAM: azurerm deprecates local_authentication_disabled in favor of
+# local_authentication_enabled and removes it in 5.0. The input name is kept for now.
 variable "local_authentication_disabled" {
   type        = bool
-  description = "Whether key-based authentication is disabled so only Microsoft Entra ID is accepted"
+  description = "Whether key-based authentication is disabled so only Microsoft Entra ID is accepted. Deprecated upstream: azurerm deprecates local_authentication_disabled in favor of local_authentication_enabled and removes it in 5.0"
 }
 
 variable "public_network_access_enabled" {
@@ -87,7 +89,76 @@ variable "sql_databases" {
       default_ttl           = optional(number)
       throughput            = optional(number)
       max_throughput        = optional(number)
+      indexing_policy = optional(object({
+        indexing_mode       = optional(string)
+        included_paths      = optional(list(string))
+        excluded_paths      = optional(list(string))
+        spatial_index_paths = optional(list(string))
+        composite_indexes = optional(list(list(object({
+          path  = string
+          order = string
+        }))))
+      }))
     }))
   }))
-  description = "SQL API databases keyed by database name, each with a map of containers keyed by container name. Set max_throughput for autoscale or throughput for manual; leave both null for none"
+  description = "SQL API databases keyed by database name, each with a map of containers keyed by container name. Set max_throughput for autoscale or throughput for manual; leave both null for none. default_ttl null turns TTL off and -1 turns it on with no default expiry. indexing_policy null keeps the Azure default policy; its paths are plain strings (escape quotes, for example \"/\\\"_etag\\\"/?\")"
+}
+
+variable "sql_stored_procedures" {
+  type = map(object({
+    database_name  = string
+    container_name = string
+    body           = string
+  }))
+  description = "SQL stored procedures keyed by procedure name; database_name and container_name must match an entry in sql_databases"
+}
+
+variable "sql_triggers" {
+  type = map(object({
+    database_name  = string
+    container_name = string
+    body           = string
+    operation      = string
+    type           = string
+  }))
+  description = "SQL triggers keyed by trigger name; operation is All, Create, Update, Delete or Replace, and type is Pre or Post"
+}
+
+variable "sql_functions" {
+  type = map(object({
+    database_name  = string
+    container_name = string
+    body           = string
+  }))
+  description = "SQL user-defined functions keyed by function name"
+}
+
+variable "sql_role_definitions" {
+  type = map(object({
+    assignable_scopes  = optional(set(string))
+    role_definition_id = optional(string)
+    type               = optional(string)
+    permissions = list(object({
+      data_actions = set(string)
+    }))
+  }))
+  description = "SQL role definitions keyed by role name; assignable_scopes null scopes the role to the whole account, type is BuiltInRole or CustomRole"
+}
+
+variable "sql_role_assignments" {
+  type = map(object({
+    principal_id        = string
+    role_definition_key = optional(string)
+    role_definition_id  = optional(string)
+    scope               = optional(string)
+  }))
+  description = "SQL role assignments keyed by a stable name; set exactly one of role_definition_key (a key of sql_role_definitions) or role_definition_id (an existing definition), and scope null grants access on the whole account"
+}
+
+variable "sql_dedicated_gateway" {
+  type = object({
+    instance_count = number
+    instance_size  = string
+  })
+  description = "SQL dedicated gateway; null for none. instance_count is 1 to 5 and instance_size is Cosmos.D4s, Cosmos.D8s or Cosmos.D16s"
 }

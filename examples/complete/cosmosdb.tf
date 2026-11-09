@@ -14,18 +14,17 @@
 ## limitations under the License.
 ## ----------------------------------------------------------------------------
 ##
-##  modules/cosmosdb/examples/complete/cosmosdb.tf
+##  examples/complete/cosmosdb.tf
 ##
 ##  Creates a resource group and a Cosmos DB account with one database and
-##  one container.
+##  two containers, one of them with an explicit indexing policy.
 ## ----------------------------------------------------------------------------
 
 ## Resource Group
-module "resource_group" {
-  source  = "../../../resource-group"
-  context = module.context.self
-
+resource "azurerm_resource_group" "this" {
   location = var.region
+  name     = "${module.context.id}-rg"
+  tags     = module.context.tags
 }
 
 
@@ -38,9 +37,9 @@ module "cosmosdb" {
   free_tier_enabled             = false
   ip_range_filter               = []
   local_authentication_disabled = true
-  location                      = module.resource_group.location
+  location                      = azurerm_resource_group.this.location
   public_network_access_enabled = true
-  resource_group_name           = module.resource_group.name
+  resource_group_name           = azurerm_resource_group.this.name
   virtual_network_subnet_ids    = []
 
   consistency_policy = {
@@ -50,7 +49,7 @@ module "cosmosdb" {
   geo_locations = [
     {
       failover_priority = 0
-      location          = module.resource_group.location
+      location          = azurerm_resource_group.this.location
     }
   ]
 
@@ -60,7 +59,24 @@ module "cosmosdb" {
         "items" = {
           partition_key_paths = ["/id"]
         }
+        "entities" = {
+          partition_key_paths = ["/entityType"]
+          default_ttl         = -1
+
+          indexing_policy = {
+            indexing_mode  = "consistent"
+            included_paths = ["/*"]
+            excluded_paths = ["/\"_etag\"/?"]
+          }
+        }
       }
     }
   }
+
+  sql_dedicated_gateway = null
+  sql_functions         = {}
+  sql_role_assignments  = {}
+  sql_role_definitions  = {}
+  sql_stored_procedures = {}
+  sql_triggers          = {}
 }

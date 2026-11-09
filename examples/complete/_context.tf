@@ -44,8 +44,8 @@
 #
 
 module "context" {
-  source  = "SevenPico/context/null"
-  version = "2.0.0" # requires Terraform >= 0.13.0
+  # Modified from upstream: uses the Raring Group fork instead of the SevenPico registry module.
+  source = "git::https://github.com/raringgroup/terraform-null-context.git?ref=v0.1.0"
 
   enabled             = var.enabled
   namespace           = var.namespace

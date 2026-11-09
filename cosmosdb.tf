@@ -14,17 +14,17 @@
 ## limitations under the License.
 ## ----------------------------------------------------------------------------
 ##
-##  modules/cosmosdb/cosmosdb.tf
+##  cosmosdb.tf
 ##
-##  Cosmos DB account (SQL API) with its databases and containers.
+##  Cosmos DB account (SQL API) with its databases, containers, stored procedures, triggers, functions, role definitions and role assignments, and an optional dedicated gateway.
 ## ----------------------------------------------------------------------------
 
 ## Cosmos DB Context
 module "cosmosdb_context" {
-  source  = "../null-context"
+  source  = "git::https://github.com/raringgroup/terraform-null-context.git?ref=v0.1.0"
   context = module.context.self
 
-  attributes      = ["cosmos"]
+  attributes      = ["cdb"]
   id_length_limit = 44
 }
 
@@ -111,4 +111,136 @@ resource "azurerm_cosmosdb_sql_container" "this" {
       max_throughput = autoscale_settings.value
     }
   }
+
+  dynamic "indexing_policy" {
+    for_each = each.value.indexing_policy == null ? [] : [each.value.indexing_policy]
+
+    content {
+      indexing_mode = indexing_policy.value.indexing_mode
+
+      dynamic "composite_index" {
+        for_each = indexing_policy.value.composite_indexes == null ? [] : indexing_policy.value.composite_indexes
+
+        content {
+          dynamic "index" {
+            for_each = composite_index.value
+
+            content {
+              order = index.value.order
+              path  = index.value.path
+            }
+          }
+        }
+      }
+
+      dynamic "excluded_path" {
+        for_each = toset(indexing_policy.value.excluded_paths == null ? [] : indexing_policy.value.excluded_paths)
+
+        content {
+          path = excluded_path.value
+        }
+      }
+
+      dynamic "included_path" {
+        for_each = toset(indexing_policy.value.included_paths == null ? [] : indexing_policy.value.included_paths)
+
+        content {
+          path = included_path.value
+        }
+      }
+
+      dynamic "spatial_index" {
+        for_each = toset(indexing_policy.value.spatial_index_paths == null ? [] : indexing_policy.value.spatial_index_paths)
+
+        content {
+          path = spatial_index.value
+        }
+      }
+    }
+  }
+}
+
+
+## SQL Stored Procedures
+resource "azurerm_cosmosdb_sql_stored_procedure" "this" {
+  for_each = module.cosmosdb_context.enabled ? var.sql_stored_procedures : {}
+
+  account_name        = azurerm_cosmosdb_account.this[0].name
+  body                = each.value.body
+  container_name      = azurerm_cosmosdb_sql_container.this["${each.value.database_name}/${each.value.container_name}"].name
+  database_name       = azurerm_cosmosdb_sql_database.this[each.value.database_name].name
+  name                = each.key
+  resource_group_name = var.resource_group_name
+}
+
+
+## SQL Triggers
+resource "azurerm_cosmosdb_sql_trigger" "this" {
+  for_each = module.cosmosdb_context.enabled ? var.sql_triggers : {}
+
+  body         = each.value.body
+  container_id = azurerm_cosmosdb_sql_container.this["${each.value.database_name}/${each.value.container_name}"].id
+  name         = each.key
+  operation    = each.value.operation
+  type         = each.value.type
+}
+
+
+## SQL User Defined Functions
+resource "azurerm_cosmosdb_sql_function" "this" {
+  for_each = module.cosmosdb_context.enabled ? var.sql_functions : {}
+
+  body         = each.value.body
+  container_id = azurerm_cosmosdb_sql_container.this["${each.value.database_name}/${each.value.container_name}"].id
+  name         = each.key
+}
+
+
+## SQL Role Definitions
+resource "azurerm_cosmosdb_sql_role_definition" "this" {
+  for_each = module.cosmosdb_context.enabled ? var.sql_role_definitions : {}
+
+  account_name        = azurerm_cosmosdb_account.this[0].name
+  assignable_scopes   = each.value.assignable_scopes == null ? toset([azurerm_cosmosdb_account.this[0].id]) : each.value.assignable_scopes
+  name                = each.key
+  resource_group_name = var.resource_group_name
+  role_definition_id  = each.value.role_definition_id
+  type                = each.value.type
+
+  dynamic "permissions" {
+    for_each = each.value.permissions
+
+    content {
+      data_actions = permissions.value.data_actions
+    }
+  }
+}
+
+
+## SQL Role Assignments
+resource "azurerm_cosmosdb_sql_role_assignment" "this" {
+  for_each = module.cosmosdb_context.enabled ? var.sql_role_assignments : {}
+
+  account_name        = azurerm_cosmosdb_account.this[0].name
+  principal_id        = each.value.principal_id
+  resource_group_name = var.resource_group_name
+  role_definition_id  = each.value.role_definition_key == null ? each.value.role_definition_id : azurerm_cosmosdb_sql_role_definition.this[each.value.role_definition_key].id
+  scope               = each.value.scope == null ? azurerm_cosmosdb_account.this[0].id : each.value.scope
+
+  lifecycle {
+    precondition {
+      condition     = (each.value.role_definition_key == null) != (each.value.role_definition_id == null)
+      error_message = "Set exactly one of role_definition_key and role_definition_id."
+    }
+  }
+}
+
+
+## SQL Dedicated Gateway
+resource "azurerm_cosmosdb_sql_dedicated_gateway" "this" {
+  count = module.cosmosdb_context.enabled && var.sql_dedicated_gateway != null ? 1 : 0
+
+  cosmosdb_account_id = azurerm_cosmosdb_account.this[0].id
+  instance_count      = var.sql_dedicated_gateway.instance_count
+  instance_size       = var.sql_dedicated_gateway.instance_size
 }

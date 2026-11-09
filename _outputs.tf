@@ -14,7 +14,7 @@
 ## limitations under the License.
 ## ----------------------------------------------------------------------------
 ##
-##  modules/cosmosdb/_outputs.tf
+##  _outputs.tf
 ##
 ##  Output values for the Cosmos DB module. Account keys are never output.
 ## ----------------------------------------------------------------------------
@@ -42,4 +42,34 @@ output "sql_database_ids" {
 output "sql_container_ids" {
   description = "Map of database/container name to SQL container ID"
   value       = { for k, v in azurerm_cosmosdb_sql_container.this : k => v.id }
+}
+
+output "sql_stored_procedure_ids" {
+  description = "Map of stored procedure name to ID"
+  value       = { for k, v in azurerm_cosmosdb_sql_stored_procedure.this : k => v.id }
+}
+
+output "sql_trigger_ids" {
+  description = "Map of trigger name to ID"
+  value       = { for k, v in azurerm_cosmosdb_sql_trigger.this : k => v.id }
+}
+
+output "sql_function_ids" {
+  description = "Map of user-defined function name to ID"
+  value       = { for k, v in azurerm_cosmosdb_sql_function.this : k => v.id }
+}
+
+output "sql_role_definition_ids" {
+  description = "Map of role definition name to ID"
+  value       = { for k, v in azurerm_cosmosdb_sql_role_definition.this : k => v.id }
+}
+
+output "sql_role_assignment_ids" {
+  description = "Map of role assignment key to ID"
+  value       = { for k, v in azurerm_cosmosdb_sql_role_assignment.this : k => v.id }
+}
+
+output "sql_dedicated_gateway_id" {
+  description = "SQL dedicated gateway ID (null when there is none or the module is disabled)"
+  value       = try(azurerm_cosmosdb_sql_dedicated_gateway.this[0].id, null)
 }
