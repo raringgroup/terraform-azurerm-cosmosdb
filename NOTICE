@@ -6,4 +6,6 @@ This product includes software developed by Raring Group LLC (https://github.com
 Portions of this software are derived from terraform-null-label (https://github.com/cloudposse/terraform-null-label),
 Copyright 2017-2020 Cloud Posse, LLC, licensed under the Apache License, Version 2.0.
 The derived files are _context.tf and examples/complete/_context.tf.
-Modifications by Raring Group LLC: adapted for the Raring Group context module and re-sourced for use in this module.
+Modifications by Raring Group LLC:
+- Replaced the upstream cloudposse/label/null module call with the Raring Group terraform-null-context module.
+- Added the region, project, domain_name and dns_name_format context inputs and a "self" output.
