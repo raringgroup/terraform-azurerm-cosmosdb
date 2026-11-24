@@ -23,7 +23,7 @@
 ## ----------------------------------------------------------------------------
 
 #
-# ONLY EDIT THIS FILE IN github.com/SevenPico/terraform-null-context
+# ONLY EDIT THIS FILE IN github.com/raringgroup/terraform-null-context
 # All other instances of this file should be a copy of that one
 #
 #
@@ -45,7 +45,7 @@
 #
 
 module "context" {
-  # Modified from upstream: uses the Raring Group fork instead of the SevenPico registry module.
+  # Modified from upstream: uses the Raring Group fork instead of the upstream registry module.
   source = "git::https://github.com/raringgroup/terraform-null-context.git?ref=v0.1.0"
 
   enabled             = var.enabled

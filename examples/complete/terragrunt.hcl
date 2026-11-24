@@ -16,12 +16,12 @@
 
 # TERRAGRUNT — COSMOSDB EXAMPLE
 # ------------------------------------------------------------------------------
-# modules/cosmosdb/examples/complete/terragrunt.hcl
+# examples/complete/terragrunt.hcl
 #
 # Deploys the cosmosdb example to Azure. Generates the azurerm provider and
 # backend and passes the standard context inputs.
 #
-# Module: modules/cosmosdb
+# Module: terraform-azurerm-cosmosdb
 # ------------------------------------------------------------------------------
 
 locals {
