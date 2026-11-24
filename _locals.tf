@@ -14,7 +14,7 @@
 ## limitations under the License.
 ## ----------------------------------------------------------------------------
 ##
-##  modules/cosmosdb/_locals.tf
+##  _locals.tf
 ##
 ##  Flattens the nested database and container map for for_each.
 ## ----------------------------------------------------------------------------
